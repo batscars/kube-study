@@ -125,7 +125,7 @@ spec:
     spec:
       containers:
         - name: kubernetes-dashboard
-          image: kubernetesui/dashboard:v2.0.0-rc5
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/dashboard:v2.0.0-rc5
           imagePullPolicy: Always
           ports:
             - containerPort: 8443
@@ -209,7 +209,7 @@ spec:
     spec:
       containers:
         - name: dashboard-metrics-scraper
-          image: kubernetesui/metrics-scraper:v1.0.3
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/metrics-scraper:v1.0.3
           ports:
             - containerPort: 8000
               protocol: TCP

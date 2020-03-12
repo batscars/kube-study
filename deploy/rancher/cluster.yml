@@ -67,6 +67,8 @@ network:
     canal_flannel_backend_type: vxlan
 authentication:
   strategy: x509
+  sans:
+    - "10.202.22.45"
 system_images:
   etcd: rancher-kube/coreos-etcd:v3.4.3-rancher1
   alpine: rancher-kube/rke-tools:v0.1.52

@@ -17,4 +17,35 @@ chmod +x kubectl
 ```
 kubectl apply -f dashboard.yaml
 ```
-## Step 6: kubernetes-master-highavailable
+## Step 6: 部署rancher
+```
+docker run -d --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher
+```
+## Step 7: master节点高可用配置
+[参考文档](https://zhuanlan.zhihu.com/p/68546385)
+### 单独找一台服务器(10.202.22.45)作为负载均衡器，部署nginx
+```
+...
+stream {
+    upstream apiserver {
+        server 10.202.22.46:6443 weight=5 max_fails=3 fail_timeout=60s;
+        server 10.202.22.47:6443 weight=5 max_fails=3 fail_timeout=60s;
+        server 10.202.22.48:6443 weight=5 max_fails=3 fail_timeout=60s;
+    }
+
+    server {
+        listen 6443;
+        proxy_connect_timeout 1s;
+        proxy_timeout 10s;
+        proxy_pass apiserver;
+    }
+}
+...
+```
+### 修改配置文件, 执行```rke cert-rotate```
+```
+authentication:
+  strategy: x509
+  sans:
+    - "10.202.22.45"
+```
