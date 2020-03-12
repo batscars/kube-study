@@ -49,3 +49,7 @@ authentication:
   sans:
     - "10.202.22.45"
 ```
+## Step 8: Helm
+```
+wget https://get.helm.sh/helm-v3.1.1-linux-amd64.tar.gz
+```

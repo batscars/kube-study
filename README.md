@@ -1,4 +1,3 @@
 ## kube-study
-### TODO
-- kubernetes cluster high available deployment
+- [Kubernetes Deployment](https://github.com/batscars/kube-study/tree/master/deploy/rancher)
 - elaticsearch cluster deployment on kubernetes
