@@ -247,7 +247,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: kibana
-          image: docker.io/bitnami/kibana:7.6.1-debian-10-r8
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/kibana:7.6.1-debian-10-r8
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 1001
@@ -329,7 +329,7 @@ spec:
       ## Image that performs the sysctl operation to modify Kernel settings (needed sometimes to avoid boot errors)
       initContainers:
         - name: sysctl
-          image: docker.io/bitnami/minideb:buster
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/minideb:buster
           imagePullPolicy: "IfNotPresent"
           command:
             - /scripts/sysctl.sh
@@ -341,7 +341,7 @@ spec:
               subPath: sysctl.sh
       containers:
         - name: elasticsearch
-          image: docker.io/bitnami/elasticsearch:7.6.1-debian-10-r8
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/elasticsearch:7.6.1-debian-10-r8 
           imagePullPolicy: "IfNotPresent"
           securityContext:
             runAsUser: 1001
@@ -430,7 +430,7 @@ spec:
       ## Image that performs the sysctl operation to modify Kernel settings (needed sometimes to avoid boot errors)
       initContainers:
         - name: sysctl
-          image: docker.io/bitnami/minideb:buster
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/minideb:buster
           imagePullPolicy: "IfNotPresent"
           command:
             - /scripts/sysctl.sh
@@ -442,7 +442,7 @@ spec:
               subPath: sysctl.sh
       containers:
         - name: elasticsearch
-          image: docker.io/bitnami/elasticsearch:7.6.1-debian-10-r8
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/elasticsearch:7.6.1-debian-10-r8 
           imagePullPolicy: "IfNotPresent"
           securityContext:
             runAsUser: 1001
@@ -530,7 +530,7 @@ spec:
     spec:      
       containers:
         - name: metrics
-          image: docker.io/bitnami/elasticsearch-exporter:1.1.0-debian-10-r43
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/elasticsearch-exporter:1.1.0-debian-10-r43 
           imagePullPolicy: "IfNotPresent"
           args:
             - --es.uri=http://zb-coordinating-only:9200
@@ -591,7 +591,7 @@ spec:
       initContainers:
         ## Image that performs the sysctl operation to modify Kernel settings (needed sometimes to avoid boot errors)
         - name: sysctl
-          image: docker.io/bitnami/minideb:buster
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/minideb:buster
           imagePullPolicy: "IfNotPresent"
           command:
             - /scripts/sysctl.sh
@@ -603,7 +603,7 @@ spec:
               subPath: sysctl.sh
       containers:
         - name: elasticsearch
-          image: docker.io/bitnami/elasticsearch:7.6.1-debian-10-r8
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/elasticsearch:7.6.1-debian-10-r8 
           imagePullPolicy: "IfNotPresent"
           securityContext:
             runAsUser: 1001
@@ -704,7 +704,7 @@ spec:
       initContainers:
         ## Image that performs the sysctl operation to modify Kernel settings (needed sometimes to avoid boot errors)
         - name: sysctl
-          image: docker.io/bitnami/minideb:buster
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/minideb:buster
           imagePullPolicy: "IfNotPresent"
           command:
             - /scripts/sysctl.sh
@@ -716,7 +716,7 @@ spec:
               subPath: sysctl.sh
       containers:
         - name: elasticsearch
-          image: docker.io/bitnami/elasticsearch:7.6.1-debian-10-r8
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/elasticsearch:7.6.1-debian-10-r8 
           imagePullPolicy: "IfNotPresent"
           securityContext:
             runAsUser: 1001
@@ -802,7 +802,7 @@ metadata:
 spec:
   containers:
     - name: wget
-      image: bitnami/minideb
+      image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/minideb:latest
       command: ['wget']
       args: ['zb-kibana:80']
   restartPolicy: Never
