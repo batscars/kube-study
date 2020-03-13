@@ -1,12 +1,105 @@
 ---
+# Source: elasticsearch/charts/kibana/templates/configmap.yml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zb-kibana-conf
+  labels:
+    app.kubernetes.io/name: kibana
+    helm.sh/chart: kibana-5.0.11
+    app.kubernetes.io/instance: zb
+    app.kubernetes.io/version: "7.6.1"
+    app.kubernetes.io/managed-by: Helm
+data:
+  kibana.yml: |
+    pid.file: /opt/bitnami/kibana/tmp/kibana.pid
+    server.host: 0.0.0.0
+    server.port: 5601
+    elasticsearch.hosts: [http://zb-coordinating-only:9200]
+---
+# Source: elasticsearch/templates/configmap-initcontainer.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zb-elasticsearch-initcontainer
+  labels:
+    app: elasticsearch
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
+data:
+  sysctl.sh: |-
+    #!/bin/bash
+    
+    set -o errexit
+    set -o pipefail
+    set -o nounset
+
+    if ! [ -x "$(command -v sysctl)" ]; then
+      echo 'sysctl not installed. Installing it...'
+      distro=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
+      case $distro in
+        ol | centos)
+          yum install -y procps
+          rm -rf /var/cache/yum;;
+        ubuntu | debian)
+          apt-get update -qq && apt-get install -y --no-install-recommends procps
+          rm -rf /var/lib/apt/lists /var/cache/apt/archives;;
+      esac
+    fi
+    sysctl -w vm.max_map_count=262144 && sysctl -w fs.file-max=65536
+---
+# Source: elasticsearch/charts/kibana/templates/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: zb-kibana
+  labels:
+    app.kubernetes.io/name: kibana
+    helm.sh/chart: kibana-5.0.11
+    app.kubernetes.io/instance: zb
+    app.kubernetes.io/version: "7.6.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "10Gi"
+---
+# Source: elasticsearch/charts/kibana/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: zb-kibana
+  labels:
+    app.kubernetes.io/name: kibana
+    helm.sh/chart: kibana-5.0.11
+    app.kubernetes.io/instance: zb
+    app.kubernetes.io/version: "7.6.1"
+    app.kubernetes.io/managed-by: Helm
+
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/instance: zb
+---
 # Source: elasticsearch/templates/coordinating-svc.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: kefu-elasticsearch-coordinating-only
+  name: zb-coordinating-only
   labels:
     app: elasticsearch
-    release: kefu
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
     role: coordinating-only
   annotations: 
     {}
@@ -19,17 +112,19 @@ spec:
       nodePort: null
   selector:
     app: elasticsearch
-    release: kefu
+    release: zb
     role: coordinating-only
 ---
 # Source: elasticsearch/templates/discovery-svc.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: kefu-elasticsearch-discovery
+  name: zb-elasticsearch-discovery
   labels:
     app: elasticsearch
-    release: kefu
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
   annotations:
     service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
 spec:
@@ -43,16 +138,18 @@ spec:
   sessionAffinity: None
   selector:
     app: elasticsearch
-    release: kefu
+    release: zb
 ---
 # Source: elasticsearch/templates/ingest-svc.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: kefu-elasticsearch-ingest
+  name: zb-elasticsearch-ingest
   labels:
     app: elasticsearch
-    release: kefu
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
     role: ingest
   annotations: 
     {}
@@ -65,17 +162,19 @@ spec:
       nodePort: null
   selector:
     app: elasticsearch
-    release: kefu
+    release: zb
     role: ingest
 ---
 # Source: elasticsearch/templates/master-svc.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: kefu-elasticsearch-master
+  name: zb-elasticsearch-master
   labels:
     app: elasticsearch
-    release: kefu
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
     role: master
   annotations: 
     {}
@@ -88,17 +187,19 @@ spec:
       nodePort: null
   selector:
     app: elasticsearch
-    release: kefu
+    release: zb
     role: master
 ---
 # Source: elasticsearch/templates/metrics-svc.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: kefu-elasticsearch-metrics
+  name: zb-elasticsearch-metrics
   labels:
     app: elasticsearch
-    release: kefu
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
     role: metrics
   annotations: 
     prometheus.io/port: "9114"
@@ -111,17 +212,97 @@ spec:
       targetPort: metrics
   selector:
     app: elasticsearch
-    release: kefu
+    release: zb
     role: metrics
+---
+# Source: elasticsearch/charts/kibana/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zb-kibana
+  labels:
+    app.kubernetes.io/name: kibana
+    helm.sh/chart: kibana-5.0.11
+    app.kubernetes.io/instance: zb
+    app.kubernetes.io/version: "7.6.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kibana
+      app.kubernetes.io/instance: zb
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kibana
+        helm.sh/chart: kibana-5.0.11
+        app.kubernetes.io/instance: zb
+        app.kubernetes.io/version: "7.6.1"
+        app.kubernetes.io/managed-by: Helm
+    spec:      
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: kibana
+          image: docker.io/bitnami/kibana:7.6.1-debian-10-r8
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1001
+          env:
+            - name: KIBANA_ELASTICSEARCH_URL
+              value: "http://zb-coordinating-only:9200"
+            - name: KIBANA_ELASTICSEARCH_PORT
+              value: "9200"
+            - name: KIBANA_FORCE_INITSCRIPTS
+              value: "false"
+          ports:
+            - name: http
+              containerPort: 5601
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /app/kibana
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /app/kibana
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          volumeMounts:
+          - name: kibana-data
+            mountPath: /bitnami/kibana
+          - name: kibana-config
+            mountPath: /bitnami/kibana/conf
+      volumes:
+        - name: kibana-data
+          persistentVolumeClaim:
+            claimName: zb-kibana
+        - name: kibana-config
+          configMap:
+            name: zb-kibana-conf
 ---
 # Source: elasticsearch/templates/coordinating-deploy.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kefu-elasticsearch-coordinating-only
+  name: zb-coordinating-only
   labels:
     app: elasticsearch
-    release: kefu
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
     role: coordinating-only
 spec:
   strategy:
@@ -129,19 +310,35 @@ spec:
   selector:
     matchLabels:
       app: elasticsearch
-      release: kefu
+      release: zb
       role: coordinating-only
   replicas: 1
   template:
     metadata:
       labels:
         app: elasticsearch
-        release: kefu
+        chart: elasticsearch-11.0.11
+        release: zb
+        heritage: Helm
         role: coordinating-only
     spec:
+      
       serviceAccountName: default
       securityContext:
         fsGroup: 1001
+      ## Image that performs the sysctl operation to modify Kernel settings (needed sometimes to avoid boot errors)
+      initContainers:
+        - name: sysctl
+          image: docker.io/bitnami/minideb:buster
+          imagePullPolicy: "IfNotPresent"
+          command:
+            - /scripts/sysctl.sh
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: initcontainer-script
+              mountPath: /scripts/sysctl.sh
+              subPath: sysctl.sh
       containers:
         - name: elasticsearch
           image: docker.io/bitnami/elasticsearch:7.6.1-debian-10-r8
@@ -154,7 +351,7 @@ spec:
             - name: ELASTICSEARCH_CLUSTER_NAME
               value: "elastic"
             - name: ELASTICSEARCH_CLUSTER_HOSTS
-              value: kefu-elasticsearch-discovery
+              value: zb-elasticsearch-discovery
             - name: ELASTICSEARCH_HEAP_SIZE
               value: "128m"
             - name: ELASTICSEARCH_IS_DEDICATED_NODE
@@ -193,6 +390,10 @@ spec:
             - name: data
               mountPath: "/bitnami/elasticsearch/data/"
       volumes:
+        - name: initcontainer-script
+          configMap:
+            name: zb-elasticsearch-initcontainer
+            defaultMode: 0755
         - name: data
           emptyDir: {}
 ---
@@ -200,27 +401,45 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kefu-elasticsearch-ingest
+  name: zb-elasticsearch-ingest
   labels:
     app: elasticsearch
-    release: kefu
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
     role: ingest
 spec:
   selector:
     matchLabels:
       app: elasticsearch
-      release: kefu
+      release: zb
       role: ingest
   replicas: 1
   template:
     metadata:
       labels:
         app: elasticsearch
-        release: kefu
+        chart: elasticsearch-11.0.11
+        release: zb
+        heritage: Helm
         role: ingest
     spec:
+      
       securityContext:
         fsGroup: 1001
+      ## Image that performs the sysctl operation to modify Kernel settings (needed sometimes to avoid boot errors)
+      initContainers:
+        - name: sysctl
+          image: docker.io/bitnami/minideb:buster
+          imagePullPolicy: "IfNotPresent"
+          command:
+            - /scripts/sysctl.sh
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: initcontainer-script
+              mountPath: /scripts/sysctl.sh
+              subPath: sysctl.sh
       containers:
         - name: elasticsearch
           image: docker.io/bitnami/elasticsearch:7.6.1-debian-10-r8
@@ -233,7 +452,7 @@ spec:
             - name: ELASTICSEARCH_CLUSTER_NAME
               value: "elastic"
             - name: ELASTICSEARCH_CLUSTER_HOSTS
-              value: kefu-elasticsearch-discovery
+              value: zb-elasticsearch-discovery
             - name: ELASTICSEARCH_HEAP_SIZE
               value: "128m"
             - name: ELASTICSEARCH_IS_DEDICATED_NODE
@@ -272,6 +491,10 @@ spec:
             - name: "data"
               mountPath: "/bitnami/elasticsearch/data/"
       volumes:
+        - name: initcontainer-script
+          configMap:
+            name: zb-elasticsearch-initcontainer
+            defaultMode: 0755
         - name: data
           emptyDir: {}
 ---
@@ -279,23 +502,27 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kefu-elasticsearch-metrics
+  name: zb-elasticsearch-metrics
   labels:
     app: elasticsearch
-    release: kefu
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
     role: metrics
 spec:
   selector:
     matchLabels:
       app: elasticsearch
-      release: kefu
+      release: zb
       role: metrics
   replicas: 1
   template:
     metadata:
       labels:
         app: elasticsearch
-        release: kefu
+        chart: elasticsearch-11.0.11
+        release: zb
+        heritage: Helm
         role: metrics
       annotations: 
         prometheus.io/port: "8080"
@@ -306,7 +533,7 @@ spec:
           image: docker.io/bitnami/elasticsearch-exporter:1.1.0-debian-10-r43
           imagePullPolicy: "IfNotPresent"
           args:
-            - --es.uri=http://kefu-elasticsearch-coordinating-only:9200
+            - --es.uri=http://zb-coordinating-only:9200
             - --es.all
           ports:
             - name: metrics
@@ -323,15 +550,20 @@ spec:
               port: metrics
             initialDelaySeconds: 5
             timeoutSeconds: 1
+          resources:
+            limits: {}
+            requests: {}
 ---
 # Source: elasticsearch/templates/data-statefulset.yaml
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: kefu-elasticsearch-data
+  name: zb-elasticsearch-data
   labels:
     app: elasticsearch
-    release: kefu
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
     role: data
 spec:
   updateStrategy:
@@ -339,20 +571,36 @@ spec:
   selector:
     matchLabels:
       app: elasticsearch
-      release: kefu
+      release: zb
       role: data
-  serviceName: kefu-elasticsearch-data
+  serviceName: zb-elasticsearch-data
   replicas: 3
   template:
     metadata:
       labels:
         app: elasticsearch
-        release: kefu
+        chart: elasticsearch-11.0.11
+        release: zb
+        heritage: Helm
         role: data
     spec:
+      
       serviceAccountName: default
       securityContext:
         fsGroup: 1001
+      initContainers:
+        ## Image that performs the sysctl operation to modify Kernel settings (needed sometimes to avoid boot errors)
+        - name: sysctl
+          image: docker.io/bitnami/minideb:buster
+          imagePullPolicy: "IfNotPresent"
+          command:
+            - /scripts/sysctl.sh
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: initcontainer-script
+              mountPath: /scripts/sysctl.sh
+              subPath: sysctl.sh
       containers:
         - name: elasticsearch
           image: docker.io/bitnami/elasticsearch:7.6.1-debian-10-r8
@@ -365,7 +613,7 @@ spec:
             - name: ELASTICSEARCH_CLUSTER_NAME
               value: "elastic"
             - name: ELASTICSEARCH_CLUSTER_HOSTS
-              value: kefu-elasticsearch-discovery
+              value: zb-elasticsearch-discovery
             - name: ELASTICSEARCH_HEAP_SIZE
               value: "128m"
             - name: ELASTICSEARCH_IS_DEDICATED_NODE
@@ -397,17 +645,23 @@ spec:
             limits: {}
             requests:
               cpu: 25m
-              memory: 1152Mi
+              memory: 512Mi
           volumeMounts:
             - name: "data"
               mountPath: "/bitnami/elasticsearch/data"
       volumes:
+        - name: initcontainer-script
+          configMap:
+            name: zb-elasticsearch-initcontainer
+            defaultMode: 0755
   volumeClaimTemplates:
     - metadata:
         name: "data"
       spec:
         accessModes:
           - ReadWriteOnce
+        
+        
         resources:
           requests:
             storage: "8Gi"
@@ -416,10 +670,12 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: kefu-elasticsearch-master
+  name: zb-elasticsearch-master
   labels:
     app: elasticsearch
-    release: kefu
+    chart: elasticsearch-11.0.11
+    release: zb
+    heritage: Helm
     role: master
 spec:
   updateStrategy:
@@ -427,21 +683,37 @@ spec:
   selector:
     matchLabels:
       app: elasticsearch
-      release: kefu
+      release: zb
       role: master
-  serviceName: kefu-elasticsearch-master
+  serviceName: zb-elasticsearch-master
   podManagementPolicy: Parallel
   replicas: 3
   template:
     metadata:
       labels:
         app: elasticsearch
-        release: kefu
+        chart: elasticsearch-11.0.11
+        release: zb
+        heritage: Helm
         role: master
     spec:
+      
       serviceAccountName: default
       securityContext:
         fsGroup: 1001
+      initContainers:
+        ## Image that performs the sysctl operation to modify Kernel settings (needed sometimes to avoid boot errors)
+        - name: sysctl
+          image: docker.io/bitnami/minideb:buster
+          imagePullPolicy: "IfNotPresent"
+          command:
+            - /scripts/sysctl.sh
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: initcontainer-script
+              mountPath: /scripts/sysctl.sh
+              subPath: sysctl.sh
       containers:
         - name: elasticsearch
           image: docker.io/bitnami/elasticsearch:7.6.1-debian-10-r8
@@ -454,9 +726,9 @@ spec:
             - name: ELASTICSEARCH_CLUSTER_NAME
               value: "elastic"
             - name: ELASTICSEARCH_CLUSTER_HOSTS
-              value: kefu-elasticsearch-discovery
+              value: zb-elasticsearch-discovery
             - name: ELASTICSEARCH_CLUSTER_MASTER_HOSTS
-              value: kefu-elasticsearch-master-0 kefu-elasticsearch-master-1 kefu-elasticsearch-master-2 
+              value: zb-elasticsearch-master-0 zb-elasticsearch-master-1 zb-elasticsearch-master-2 
             - name: ELASTICSEARCH_MINIMUM_MASTER_NODES
               value: "2"
             - name: ELASTICSEARCH_HEAP_SIZE
@@ -495,15 +767,42 @@ spec:
             - name: data
               mountPath: /bitnami/elasticsearch/data
       volumes:
+        - name: initcontainer-script
+          configMap:
+            name: zb-elasticsearch-initcontainer
+            defaultMode: 0755
   volumeClaimTemplates:
     - metadata:
         name: "data"
       spec:
         accessModes:
           - ReadWriteOnce
+        
+        
         resources:
           requests:
             storage: "8Gi"
 ---
 # Source: elasticsearch/templates/serviceaccount.yaml
 ---
+---
+# Source: elasticsearch/charts/kibana/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "zb-kibana-test-connection"
+  labels:
+    app.kubernetes.io/name: kibana
+    helm.sh/chart: kibana-5.0.11
+    app.kubernetes.io/instance: zb
+    app.kubernetes.io/version: "7.6.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: wget
+      image: bitnami/minideb
+      command: ['wget']
+      args: ['zb-kibana:80']
+  restartPolicy: Never
