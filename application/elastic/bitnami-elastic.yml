@@ -1,9 +1,15 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: elastic
+---
 # Source: elasticsearch/charts/kibana/templates/configmap.yml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: zb-kibana-conf
+  namespace: elastic
   labels:
     app.kubernetes.io/name: kibana
     helm.sh/chart: kibana-5.0.11
@@ -22,6 +28,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: zb-elasticsearch-initcontainer
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -54,6 +61,7 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: zb-kibana
+  namespace: elastic
   labels:
     app.kubernetes.io/name: kibana
     helm.sh/chart: kibana-5.0.11
@@ -72,6 +80,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zb-kibana
+  namespace: elastic
   labels:
     app.kubernetes.io/name: kibana
     helm.sh/chart: kibana-5.0.11
@@ -95,6 +104,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zb-coordinating-only
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -120,6 +130,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zb-elasticsearch-discovery
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -145,6 +156,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zb-elasticsearch-ingest
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -170,6 +182,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zb-elasticsearch-master
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -195,6 +208,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zb-elasticsearch-metrics
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -220,6 +234,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zb-kibana
+  namespace: elastic
   labels:
     app.kubernetes.io/name: kibana
     helm.sh/chart: kibana-5.0.11
@@ -298,6 +313,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zb-coordinating-only
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -402,6 +418,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zb-elasticsearch-ingest
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -503,6 +520,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zb-elasticsearch-metrics
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -559,6 +577,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: zb-elasticsearch-data
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -654,14 +673,15 @@ spec:
           configMap:
             name: zb-elasticsearch-initcontainer
             defaultMode: 0755
+        - name: data
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: "data"
       spec:
+        storageClassName: hostpath
         accessModes:
           - ReadWriteOnce
-        
-        
         resources:
           requests:
             storage: "8Gi"
@@ -671,6 +691,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: zb-elasticsearch-master
+  namespace: elastic
   labels:
     app: elasticsearch
     chart: elasticsearch-11.0.11
@@ -697,7 +718,6 @@ spec:
         heritage: Helm
         role: master
     spec:
-      
       serviceAccountName: default
       securityContext:
         fsGroup: 1001
@@ -771,14 +791,15 @@ spec:
           configMap:
             name: zb-elasticsearch-initcontainer
             defaultMode: 0755
+        - name: data
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: "data"
       spec:
+        storageClassName: hostpath
         accessModes:
           - ReadWriteOnce
-        
-        
         resources:
           requests:
             storage: "8Gi"
@@ -791,6 +812,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: "zb-kibana-test-connection"
+  namespace: elastic
   labels:
     app.kubernetes.io/name: kibana
     helm.sh/chart: kibana-5.0.11
