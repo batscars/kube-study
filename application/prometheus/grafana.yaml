@@ -1,0 +1,298 @@
+---
+# Source: grafana/templates/podsecuritypolicy.yaml
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: pro-grafana
+  namespace: g-prog-ai
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: pro
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    # Default set from Docker, without DAC_OVERRIDE or CHOWN
+    - FOWNER
+    - FSETID
+    - KILL
+    - SETGID
+    - SETUID
+    - SETPCAP
+    - NET_BIND_SERVICE
+    - NET_RAW
+    - SYS_CHROOT
+    - MKNOD
+    - AUDIT_WRITE
+    - SETFCAP
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: false
+---
+# Source: grafana/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pro-grafana
+  namespace: g-prog-ai
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: pro
+    heritage: Helm
+type: Opaque
+data:
+  admin-user: "YWRtaW4="
+  admin-password: "UXdHZnZheVdtcUNOV1dweGswbk9sQ2JIQXlnc3pxUFdyNHNCQTVudQ=="
+  ldap-toml: ""
+---
+# Source: grafana/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pro-grafana
+  namespace: g-prog-ai
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: pro
+    heritage: Helm
+data:
+  grafana.ini: |
+    [analytics]
+    check_for_updates = true
+    [grafana_net]
+    url = https://grafana.net
+    [log]
+    mode = console
+    [paths]
+    data = /var/lib/grafana/data
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+---
+# Source: grafana/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: pro
+  name: pro-grafana
+  namespace: g-prog-ai
+---
+# Source: grafana/templates/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: pro
+    heritage: Helm
+  name: pro-grafana-clusterrole
+rules: []
+---
+# Source: grafana/templates/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: pro-grafana-clusterrolebinding
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: pro
+    heritage: Helm
+subjects:
+  - kind: ServiceAccount
+    name: pro-grafana
+    namespace: g-prog-ai
+roleRef:
+  kind: ClusterRole
+  name: pro-grafana-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: grafana/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: pro-grafana
+  namespace: g-prog-ai
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: pro
+rules:
+- apiGroups:      ['extensions']
+  resources:      ['podsecuritypolicies']
+  verbs:          ['use']
+  resourceNames:  [pro-grafana]
+---
+# Source: grafana/templates/tests/test-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pro-grafana-test
+  namespace: g-prog-ai
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: pro
+rules:
+- apiGroups:      ['policy']
+  resources:      ['podsecuritypolicies']
+  verbs:          ['use']
+  resourceNames:  [pro-grafana-test]
+---
+# Source: grafana/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: pro-grafana
+  namespace: g-prog-ai
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: pro
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pro-grafana
+subjects:
+- kind: ServiceAccount
+  name: pro-grafana
+  namespace: g-prog-ai
+---
+# Source: grafana/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: pro-grafana
+  namespace: g-prog-ai
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: pro
+    heritage: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - name: service
+      port: 80
+      protocol: TCP
+      targetPort: 3000
+
+  selector:
+    app: grafana
+    release: pro
+---
+# Source: grafana/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pro-grafana
+  namespace: g-prog-ai
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: pro
+    heritage: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+      release: pro
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: grafana
+        release: pro
+      annotations:
+        checksum/config: 7183f30368c1edcb7015a463202cd219d1770b934fc90ed8d72fbf24245212f5
+        checksum/dashboards-json-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/sc-dashboard-provider-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/secret: 673e5ffaf4b6a7bcd7c6250e9908bada6b45134d55927bcb7d56dd063e257b0b
+    spec:
+      
+      serviceAccountName: pro-grafana
+      securityContext:
+        fsGroup: 472
+        runAsUser: 472
+      containers:
+        - name: grafana
+          image: "grafana/grafana:6.4.2"
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config
+              mountPath: "/etc/grafana/grafana.ini"
+              subPath: grafana.ini
+            - name: storage
+              mountPath: "/var/lib/grafana"
+          ports:
+            - name: service
+              containerPort: 80
+              protocol: TCP
+            - name: grafana
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: pro-grafana
+                  key: admin-user
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pro-grafana
+                  key: admin-password
+          livenessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 60
+            timeoutSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+          resources:
+            {}
+      volumes:
+        - name: config
+          configMap:
+            name: pro-grafana
+        - name: storage
+          emptyDir: {}
