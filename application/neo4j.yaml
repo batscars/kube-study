@@ -1,0 +1,213 @@
+---
+# Source: neo4j/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kg-neo4j-secrets
+  labels:
+    app: neo4j
+    chart: "neo4j-0.5.0"
+    heritage: "Helm"
+    release: "kg"
+type: Opaque
+data:
+  neo4j-password: "YWRtaW4xMjM="
+---
+# Source: neo4j/templates/core-dns.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kg-neo4j
+  labels:
+    release: "kg"
+    app: neo4j
+    component: core
+spec:
+  clusterIP: None
+  ports:
+    - port: 7474
+      targetPort: 7474
+      name: browser
+    - port: 5000
+      targetPort: 5000
+      name: discovery
+  selector:
+    app: neo4j
+    release: "kg"
+    component: core
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kg-neo4j-web
+  labels:
+    release: "kg"
+    app: neo4j
+    component: core
+spec:
+  type: NodePort
+  ports:
+    - port: 7474
+      targetPort: 7474
+      name: browser
+    - port: 7687
+      targetPort: 7687
+      name: bolt
+  selector:
+    app: neo4j
+    release: "kg"
+    component: core
+---
+# Source: neo4j/templates/readreplicas-deployment.yaml
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: "kg-neo4j-replica"
+  labels:
+    release: "kg"
+    app: neo4j
+    component: replica
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: neo4j
+        release: "kg"
+        component: replica
+    spec:
+      containers:
+      - name: neo4j
+        image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/neo4j:3.4.15-enterprise
+        imagePullPolicy: "IfNotPresent"
+        env:
+          - name: NEO4J_dbms_mode
+            value: READ_REPLICA
+          - name: NEO4J_dbms_security_auth__enabled
+            value: "true"
+          - name: NEO4J_causal__clustering_discovery__type
+            value: DNS
+          - name: NEO4J_causal__clustering_initial__discovery__members
+            value: "kg-neo4j.default.svc.cluster.local:5000"
+          - name: NEO4J_ACCEPT_LICENSE_AGREEMENT
+            value: "yes"
+          - name: NEO4J_SECRETS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kg-neo4j-secrets
+                key: neo4j-password
+        command:
+          - "/bin/bash"
+          - "-c"
+          - |
+            export NEO4J_dbms_connectors_default__advertised__address=$(hostname -f)
+            export NEO4J_causal__clustering_transaction__advertised__address=$(hostname -f):6000
+
+            if [ "${AUTH_ENABLED:-}" == "true" ]; then
+              export NEO4J_AUTH="neo4j/${NEO4J_SECRETS_PASSWORD}"
+            else
+              export NEO4J_AUTH="none"
+            fi
+
+            exec /docker-entrypoint.sh "neo4j"
+        ports:
+        - containerPort: 7474
+          name: browser
+        - containerPort: 7687
+          name: bolt
+        - containerPort: 6000
+          name: tx
+        volumeMounts:
+        - name: plugins
+          mountPath: /plugins
+        securityContext:
+          privileged: true
+      volumes:
+        - name: plugins
+          emptyDir: {}
+---
+# Source: neo4j/templates/core-statefulset.yaml
+apiVersion: "apps/v1beta1"
+kind: StatefulSet
+metadata:
+  name: "kg-neo4j-core"
+spec:
+  serviceName: kg-neo4j
+  replicas: 3
+  selector:
+    matchLabels:
+      release: "kg"
+      app: neo4j
+      component: core
+  template:
+    metadata:
+      labels:
+        release: "kg"
+        app: neo4j
+        component: core
+    spec:
+      containers:
+      - name: kg-neo4j
+        image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/neo4j:3.4.15-enterprise
+        imagePullPolicy: "IfNotPresent"
+        env:
+          - name: NEO4J_dbms_mode
+            value: CORE
+          - name: NUMBER_OF_CORES
+            value: "3"
+          - name: AUTH_ENABLED
+            value: "true"
+          - name: NEO4J_causal__clustering_discovery__type
+            value: DNS
+          - name: NEO4J_causal__clustering_initial__discovery__members
+            value: "kg-neo4j.svc.cluster.local:5000"
+          - name: NEO4J_ACCEPT_LICENSE_AGREEMENT
+            value: "yes"
+          - name: NEO4J_SECRETS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kg-neo4j-secrets
+                key: neo4j-password
+        command:
+          - "/bin/bash"
+          - "-c"
+          - |
+            export NEO4J_dbms_connectors_default__advertised__address=$(hostname -f)
+            export NEO4J_causal__clustering_discovery__advertised__address=$(hostname -f):5000
+            export NEO4J_causal__clustering_transaction__advertised__address=$(hostname -f):6000
+            export NEO4J_causal__clustering_raft__advertised__address=$(hostname -f):7000
+
+            if [ "${AUTH_ENABLED:-}" == "true" ]; then
+              export NEO4J_AUTH="neo4j/${NEO4J_SECRETS_PASSWORD}"
+            else
+              export NEO4J_AUTH="none"
+            fi
+
+            exec /docker-entrypoint.sh "neo4j"
+        ports:
+        - containerPort: 5000
+          name: discovery
+        - containerPort: 7000
+          name: raft
+        - containerPort: 6000
+          name: tx
+        - containerPort: 7474
+          name: browser
+        - containerPort: 7687
+          name: bolt
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: datadir
+          mountPath: "/data"
+          subPath: ""
+  volumeClaimTemplates:
+    - metadata:
+        name: datadir
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: "hostpath"
+        resources:
+          requests:
+            storage: "128Mi"
