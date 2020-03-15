@@ -1,6 +1,6 @@
 # 总体架构
 从下图可见，Neo4j集群由两个不同的角色Core Servers和Read Replicas组成，这两个角色是任何生产部署中的基础，但彼此之间的管理规模不同，并且在管理整个集群的容错性和可伸缩性方面承担着不同的角色。
-![](https://github.com/batscars/kube-study/blob/master/docs/neo4j_architecture.png)
+!(https://github.com/batscars/kube-study/blob/master/docs/neo4j_architecture.png)
 
 ## Core Servers
 核心服务器的主要责任是保护数据。 核心服务器通过使用Raft协议复制所有事务来做到这一点。 在确认向最终用户应用程序提交事务之前，Raft确保数据安全持久。 在实际环境中，这意味着一旦集群（N / 2 + 1）中的大多数核心服务器都接受了事务，安全性要求会影响写入延迟。 隐式写入将以最快的多数Core Servers被确认，但是随着群集中核心服务器数量的增加，确认一次写入所需的Core Servers的数量也会增加。实际上，这意味着典型的Core Server集群中需要一定数量的服务器，足以为特定部署提供足够的容错能力。 这是使用公式M = 2F +1计算的，其中M是容忍F故障所需的核心服务器数量。 例如：
@@ -18,7 +18,7 @@
 
 ## 因果一致性
 从应用程序的角度来看，集群的运行机制很有趣，但是考虑应用程序将如何使用数据库完成工作也很有帮助。 在应用程序中，我们通常希望从图中读取并写入图中。 根据工作负载的性质，我们通常希望从图中进行读取以考虑先前的写入，以确保因果一致性。
-![](https://github.com/batscars/kube-study/blob/master/docs/casual_consistency.png)
+!(https://github.com/batscars/kube-study/blob/master/docs/casual_consistency.png)
 
 因果一致性使得可以写入Core Server（数据是安全的）并从Read Replica（其中图操作被扩展）中读取这些写入。 例如，因果一致性可确保当该用户随后尝试登录时，会出现创建该用户帐户的写操作。
 
