@@ -1,0 +1,102 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/hello-app:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: service
+              containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  type: ClusterIP
+  ports:
+    - name: service
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: web
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web2
+  labels:
+    app: web2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web2
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: web2
+    spec:
+      containers:
+        - name: web2
+          image: registry.cn-shenzhen.aliyuncs.com/rancher-kube/hello-app:2.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: service
+              containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web2
+  labels:
+    app: web2
+spec:
+  type: ClusterIP
+  ports:
+    - name: service
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: web2
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+  - host: hello-world.info
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web
+          servicePort: 8080
+      - path: /v2/*
+        backend:
+          serviceName: web2
+          servicePort: 8080
