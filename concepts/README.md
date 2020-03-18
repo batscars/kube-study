@@ -26,3 +26,62 @@ volumeClaimTemplates:
 StatefulSet中定义的PVC模板，每个pod都会创建一个跟pod编号一致的pvc，pod删除时对应的pvc和pv不会被删除，数据也不会被删除
 ### 总结
 StatefulSet直接管理Pod，通过headless service保证pod网络标识的一致性，通过pvc模板保证存储状态的一致性
+## PV/PVC
+### PV 访问模式
+- ReadWriteOnce（RWO）：可读可写，但只支持被单个 Pod 挂载。
+- ReadOnlyMany（ROX）：可以以只读的方式被多个 Pod 挂载。
+- ReadWriteMany（RWX）：可以以读写的方式被多个 Pod 共享。
+### PVC释放策略
+- Retain：不清理, 保留 Volume（需要手动清理）
+- Recycle：删除数据，即 rm -rf /thevolume/*（只有 NFS 和 HostPath 支持）
+- Delete：删除存储资源，比如删除 AWS EBS 卷（只有 AWS EBS, GCE PD, Azure Disk 和 Cinder 支持）
+### [Local Persistent Volume](https://time.geekbang.org/column/article/42819)
+```
+# Storage-class 重要参数provisioner和volumeBindingMode
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: local-storage
+provisioner: kubernetes.io/no-provisioner # 目前不支持动态分配
+volumeBindingMode: WaitForFirstConsumer  # 延迟绑定
+
+# PV 重要参数: nodeAffinity表面该本地pv在某个节点
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: example-pv
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-storage
+  local:
+    path: /mnt/disks/vol1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - node-1
+# PVC
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: example-local-claim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-storage
+```
+### Local Persistent Volume Management
+[https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner](https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner)
+
+
