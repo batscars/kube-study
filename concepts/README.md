@@ -91,8 +91,11 @@ spec:
 相当于把硬盘挂载到主机的指定目录。挂载的位置是
 /var/lib/kubelet/pods/<Pod的ID>/volumes/kubernetes.io~<Volume类型>/<Volume名字>。控制器VolumeManagerReconciler，是kubelet组件的一部分，独立于kubelet主循环
 #### Flex-Volume
-![](https://github.com/batscars/kube-study/blob/master/concepts/flex_volume.jpg)
+![](https://github.com/batscars/kube-study/blob/master/concepts/flex_volume.jpg?raw=true)
 #### CSI
-![](https://github.com/batscars/kube-study/blob/master/concepts/csi.jpg)
-
+![](https://github.com/batscars/kube-study/blob/master/concepts/csi.jpg?raw=true)
+其中:
+- Driver Registrar 组件，负责将插件注册到 kubelet 里面
+- External Provisioner 组件，负责的正是 Provision 阶段
+- External Attacher 组件，负责的正是“Attach 阶段”
 
