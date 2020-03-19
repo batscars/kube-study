@@ -98,4 +98,7 @@ spec:
 - Driver Registrar 组件，负责将插件注册到 kubelet 里面
 - External Provisioner 组件，负责的正是 Provision 阶段
 - External Attacher 组件，负责的正是“Attach 阶段”
-
+- CSI Identity服务，负责对外暴露这个插件本身的信息
+- CSI Controller 服务，定义的则是对 CSI Volume（对应 Kubernetes 里的 PV）的管理接口
+- CSI Volume 需要在宿主机上执行的操作，都定义在了 CSI Node 服务里面
+- **[参考](https://time.geekbang.org/column/article/44245)**
