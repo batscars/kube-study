@@ -14,11 +14,11 @@
 
 # Index Refresh
 提交文档索引请求后，它将添加到Translog并写入内存缓冲区。 下一次刷新索引时（默认情况下每秒进行一次），刷新过程将根据内存缓冲区的内容创建一个新的内存段，以便现在可以搜索文档。 然后它将清空内存缓冲区。 随着时间的流逝，会创建一堆分段。 随后，分段会在后台随时间合并在一起，以确保有效利用资源（每个段都使用文件句柄，内存和CPU）。 索引刷新是一项昂贵的操作，这就是为什么要定期进行刷新（默认设置），而不是在每次索引操作之后进行刷新。 如果您打算索引很多文档，而又不需要立即获取新信息以进行搜索，则可以通过减少刷新频率直到索引完成，或者甚至通过禁用索引来优化索引性能而不是搜索性能。
-![](https://github.com/batscars/kube-study/blob/master/docs/index_refresh.jpg?raw=true)
+![](https://github.com/batscars/kube-study/blob/master/docs/index_refresh.jpg?row=true)
 
 # Index Flush
 在上面的索引刷新过程中创建的内存中段不持久且不安全。 如果由于任何原因该节点关闭，它们将消失。 由于存在Translog，因此仍可以通过重播来恢复更改。 该日志每5秒或在每次成功索引，删除，更新或批量请求（以先到者为准）后，都会提交到磁盘。 但是，Translog有其自身的大小限制。 因此，每隔30分钟，或者每当事务日志达到最大大小（默认情况下为512MB）时，就会触发刷新。 在刷新期间，将刷新内存缓冲区中的所有文档（存储在新段中），所有内存段都将提交到磁盘，并清除Translog。
-![](https://github.com/batscars/kube-study/blob/master/docs/index_flush.jpg?raw=true)
+![](https://github.com/batscars/kube-study/blob/master/docs/index_flush.jpg?row=true)
 
 # 删除/更新数据
 如果是删除操作，commit 的时候会生成一个 .del 文件，里面将某个 doc 标识为 deleted 状态，那么搜索的时候根据 .del 文件就知道这个 doc 是否被删除了。
