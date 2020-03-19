@@ -84,4 +84,15 @@ spec:
 ### Local Persistent Volume Management
 [https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner](https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner)
 
+### 持久化Volume：两阶段
+#### Attach
+相当于将一块硬盘插到对应的主机上。如果是一块远程硬盘，kubelet将调用远程硬盘的api将他提供的硬盘挂在到pod所在的宿主机。如果是远程文件存储则不需要该阶段。该阶段参数为nodeName。控制器AttachDetachController在k8s master上
+#### Mount
+相当于把硬盘挂载到主机的指定目录。挂载的位置是
+/var/lib/kubelet/pods/<Pod的ID>/volumes/kubernetes.io~<Volume类型>/<Volume名字>。控制器VolumeManagerReconciler，是kubelet组件的一部分，独立于kubelet主循环
+#### Flex-Volume
+![](https://github.com/batscars/kube-study/blob/master/concepts/flex_volume.jpg)
+#### CSI
+![](https://github.com/batscars/kube-study/blob/master/concepts/csi.jpg)
+
 

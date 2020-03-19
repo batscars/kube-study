@@ -1,7 +1,8 @@
 # kube-study
 ## Concepts: Kubernetes Concepts
 - StatefulSet
-- volume/volumemounts/persistentvolume/volumeClaimTemplates
+- PV/PVC
+- 
 ## Deploy: Kubernetes Components Deployments 
 - [Rancher](https://github.com/batscars/kube-study/tree/master/deploy/rancher)
 - Kubernetes Dashboard
