@@ -4,7 +4,7 @@
 - PV/PVC
 - 
 ## Deploy: Kubernetes Components Deployments 
-- [Rancher](https://github.com/batscars/kube-study/tree/master/deploy/rancher)
+- [rke](https://github.com/batscars/kube-study/tree/master/deploy/rancher)
 - Kubernetes Dashboard
 - Nginx-ingress-controller
 ## Infrastructure Components Deployments
@@ -12,3 +12,6 @@
 - Neo4j
 - Prometheus
 ## Docs: Related detailed docs
+
+# TODO
+- Rancher deployment
