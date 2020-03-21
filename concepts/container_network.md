@@ -11,6 +11,7 @@
 3. Flanneld进程通过etcd保存容器子网与宿主机ip的对应关系
 4. Flannel UDP模式
 ![](https://github.com/batscars/kube-study/blob/master/imgs/flannel_udp.jpg?row=true)
+
 5. UDP模式缺陷：用户态和内核态交互次数太多
 - 用户态的容器进程发出的 IP 包经过 docker0 网桥进入内核态；
 - IP 包根据路由表进入 TUN（flannel0）设备，从而回到用户态的 flanneld 进程；
@@ -19,6 +20,7 @@
 7. VNI：它是 VTEP 设备识别某个数据帧是不是应该归自己处理的重要标识
 8. Flannel VXLAN模式
 ![](https://github.com/batscars/kube-study/blob/master/imgs/flannel_vxlan.jpg?row=true)
+
 9. Flannel host-gw模式
 下一跳地址：如果 IP 包从主机 A 发到主机 B，需要经过路由设备 X 的中转。那么 X 的 IP 地址就应该配置为主机 A 的下一跳地址
 ![](https://github.com/batscars/kube-study/blob/master/imgs/flannel_host_gw.jpg?row=true)
