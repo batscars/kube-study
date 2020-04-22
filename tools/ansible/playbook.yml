@@ -1,0 +1,10 @@
+---
+- hosts: 10.192.168.2
+  become: yes
+  become_method: sudo
+  become_user: root
+  tasks:
+  - name: svn checkout
+    shell: cd /workspace/ && svn checkout --username zhangbin --password 123456 https://svn.test.com/ansible_test_project ansible_test_project
+  - name: install requirements
+    shell: cd /workspace/ && virtualenv pyenv && pyenv/bin/pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
